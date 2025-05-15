@@ -1,0 +1,96 @@
+@startuml
+title Crime Reporting System - UML Diagram
+
+package "models" {
+    class User {
+        - id : String
+        - name : String
+        - email : String
+        - password : String
+        - role : String
+        + User(id, name, email, password, role)
+        + getId() : String
+        + getName() : String
+        + getEmail() : String
+        + getPassword() : String
+        + getRole() : String
+        + checkPassword(inputPassword) : boolean
+        + toString() : String
+    }
+
+    class CrimeReport {
+        - reportId : String
+        - reporterId : String
+        - title : String
+        - description : String
+        - location : String
+        - timestamp : LocalDateTime
+        - status : String
+        - attachments : List<String>
+        + CrimeReport(...)
+        + getReportId() : String
+        + getReporterId() : String
+        + getTitle() : String
+        + getDescription() : String
+        + getLocation() : String
+        + getTimestamp() : LocalDateTime
+        + getStatus() : String
+        + getAttachments() : List<String>
+        + setStatus(newStatus) : void
+        + toString() : String
+    }
+}
+
+package "services" {
+    class AuthServices {
+        - users : List<User>
+        - USER_FILE : String
+        + AuthServices()
+        + register(name, email, password, role) : User
+        + login(email, password) : User
+        + getAllUsers() : List<User>
+        - saveUsers() : void
+    }
+
+    class CrimeServices {
+        - reports : List<CrimeReport>
+        - REPORT_FILE : String
+        + CrimeServices()
+        + submitReport(...) : CrimeReport
+        + getAllReports() : List<CrimeReport>
+        + getReportsByUser(userId) : List<CrimeReport>
+        + updateStatus(reportId, newStatus) : boolean
+        + exportReportsToTextFile(filePath) : void
+        - saveReports() : void
+        - getUserById(id) : User
+    }
+
+    class NotificationService {
+        + sendEmail(to, subject, message) : void
+        + sendSMS(phone, message) : void
+    }
+}
+
+package "utils" {
+    class FileStorage {
+        + saveToFile(data, filePath) : void
+        + loadFromFile(filePath, typeOfT) : List<T>
+    }
+}
+
+class Main {
+    + main(args) : void
+}
+
+' === Relationships ===
+AuthServices --> User : uses
+AuthServices --> FileStorage : saves/loads
+CrimeServices --> CrimeReport : manages
+CrimeServices --> AuthServices : gets users
+CrimeServices --> NotificationService : sends alerts
+CrimeServices --> FileStorage : saves/loads
+Main --> AuthServices : login/register
+Main --> CrimeServices : submit/view/export
+Main --> NotificationService : sends alerts
+
+@enduml
