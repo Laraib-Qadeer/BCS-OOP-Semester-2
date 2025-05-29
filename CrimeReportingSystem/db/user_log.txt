@@ -1,0 +1,4 @@
+🟢 User registered: Hafsa (citizen), Email: hafsa@gmail.com
+👮 Police registered by Admin: Officer-Shah (shah@police.com)
+🟢 User registered: zainab (citizen), Email: zainab@gmail.com
+ User registered: hashir habib (citizen), Email: hashir@gmail.com

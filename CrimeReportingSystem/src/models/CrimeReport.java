@@ -10,8 +10,8 @@ public class CrimeReport {
     private String description;
     private String location;
     private LocalDateTime timestamp;
-    private String status; // "Pending", "Verified", "Rejected"
-    private List<String> attachments; // photo/video/audio file names
+    private String status;
+    private List<String> attachments;
 
     public CrimeReport(String reportId, String reporterId, String title, String description, String location, List<String> attachments) {
         this.reportId = reportId;
@@ -20,7 +20,7 @@ public class CrimeReport {
         this.description = description;
         this.location = location;
         this.attachments = attachments;
-        this.timestamp = LocalDateTime.now();// automatically captures current date and time everytime new report is submitted
+        this.timestamp = LocalDateTime.now();
         this.status = "Pending";
     }
 

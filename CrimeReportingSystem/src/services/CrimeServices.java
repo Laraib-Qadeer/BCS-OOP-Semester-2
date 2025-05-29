@@ -1,10 +1,10 @@
 package services;
 
 import com.google.gson.reflect.TypeToken;
-import models.CrimeReport;
-import models.User;
+import models.*;
 import utils.FileStorage;
 
+import java.io.File;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,7 +14,8 @@ import java.util.UUID;
 
 public class CrimeServices {
     private List<CrimeReport> reports;
-    private final String REPORT_FILE = "src/db/reports.json";
+    private final String REPORT_FILE = "db/reports.json";
+    private final String REPORT_LOG_FILE = "db/report_log.txt";
 
     public CrimeServices() {
         Type reportListType = new TypeToken<List<CrimeReport>>() {}.getType();
@@ -23,28 +24,33 @@ public class CrimeServices {
             reports = new ArrayList<>();
         }
     }
-    // submit report with media
+
+
     public CrimeReport submitReport(String reporterId, String title, String description, String location, List<String> attachments) {
         String id = UUID.randomUUID().toString();
         CrimeReport report = new CrimeReport(id, reporterId, title, description, location, attachments);
         reports.add(report);
         saveReports();
+
+        String logLine = " Report submitted: " + title + " | By: " + reporterId + " | Status: Pending\n";
+        FileStorage.writeToFile(new File(REPORT_LOG_FILE), logLine);
+
         return report;
     }
 
     public CrimeReport submitReport(String reporterId, String title, String description, String location) {
-        return submitReport(reporterId, title, description, location, new ArrayList<>());//overloaded method
+        return submitReport(reporterId, title, description, location, new ArrayList<>());
     }
-    //Used by admin or police to view everything.
+
     public List<CrimeReport> getAllReports() {
         return reports;
     }
-    // view reprt by any specific user
+
     public List<CrimeReport> getReportsByUser(String userId) {
         List<CrimeReport> userReports = new ArrayList<>();
         for (CrimeReport r : reports) {
             if (r.getReporterId().equals(userId)) {
-                userReports.add(r);// Filters the full report list to return only those filed by a specific user
+                userReports.add(r);
             }
         }
         return userReports;
@@ -56,9 +62,10 @@ public class CrimeServices {
                 report.setStatus(newStatus);
                 saveReports();
 
-                // Notify user
+                String logLine = " Status updated: " + report.getTitle() + " → " + newStatus + " | ID: " + reportId + "\n";
+                FileStorage.writeToFile(new File(REPORT_LOG_FILE), logLine);
+
                 User user = getUserById(report.getReporterId());
-                // prevents from sending email to anonymous reporter
                 if (user != null && !user.getId().equals("anonymous")) {
                     NotificationService.sendEmail(
                             user.getEmail(),
@@ -77,7 +84,7 @@ public class CrimeServices {
         try {
             List<CrimeReport> allReports = getAllReports();
             StringBuilder builder = new StringBuilder();
-            //Then it loops over each report and appends its details to a long string:
+
             for (CrimeReport r : allReports) {
                 builder.append("Report ID: ").append(r.getReportId()).append("\n");
                 builder.append("Title: ").append(r.getTitle()).append("\n");
@@ -89,22 +96,56 @@ public class CrimeServices {
                 builder.append("Timestamp: ").append(r.getTimestamp()).append("\n");
                 builder.append("--------------------------------------------------\n");
             }
-            //writing to a file:
+
             Files.write(Paths.get(filePath), builder.toString().getBytes());
-            System.out.println("Reports exported to: " + filePath);
+            System.out.println(" Reports exported to: " + filePath);
         } catch (Exception e) {
-            System.out.println("Failed to export reports: " + e.getMessage());
+            System.out.println(" Failed to export reports: " + e.getMessage());
         }
     }
-    //save to json file
+    public void exportReportsToTextFile(String filePath, List<CrimeReport> reportList) {
+        try {
+            StringBuilder builder = new StringBuilder();
+
+            for (CrimeReport r : reportList) {
+                builder.append("Report ID: ").append(r.getReportId()).append("\n");
+                builder.append("Title: ").append(r.getTitle()).append("\n");
+                builder.append("Description: ").append(r.getDescription()).append("\n");
+                builder.append("Location: ").append(r.getLocation()).append("\n");
+                builder.append("Status: ").append(r.getStatus()).append("\n");
+                builder.append("Reporter ID: ").append(r.getReporterId()).append("\n");
+                builder.append("Attachments: ").append(r.getAttachments()).append("\n");
+                builder.append("Timestamp: ").append(r.getTimestamp()).append("\n");
+                builder.append("--------------------------------------------------\n");
+            }
+
+            java.nio.file.Files.write(java.nio.file.Paths.get(filePath), builder.toString().getBytes());
+            System.out.println(" Reports exported to: " + filePath);
+        } catch (Exception e) {
+            System.out.println(" Failed to export reports: " + e.getMessage());
+        }
+    }
+
     private void saveReports() {
         FileStorage.saveToFile(reports, REPORT_FILE);
     }
-    // find user who reported and u can send him notification:
+
     private User getUserById(String id) {
         AuthServices authService = new AuthServices();
         for (User u : authService.getAllUsers()) {
-            if (u.getId().equals(id)) return u;
+            if (u.getId().equals(id)) {
+                switch (u.getRole().toLowerCase()) {
+                    case "admin" -> {
+                        return new Admin(u.getId(), u.getName(), u.getEmail(), u.getPassword());
+                    }
+                    case "police" -> {
+                        return new Police(u.getId(), u.getName(), u.getEmail(), u.getPassword());
+                    }
+                    case "citizen" -> {
+                        return new Citizen(u.getId(), u.getName(), u.getEmail(), u.getPassword());
+                    }
+                }
+            }
         }
         return null;
     }
